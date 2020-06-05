@@ -22,6 +22,7 @@ struct timer_node
    
 }
 
+// Module internal members
 static void*                _timer_thread(void* data);
 static pthread_t            g_thread_id;
 static struct timer_node*   g_head = NULL;
@@ -29,14 +30,14 @@ static struct timer_node*   g_head = NULL;
 int intialize()
 {
 // int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-// void *(*start_routine) (void *), void *arg);
+//                    void *(*start_routine) (void *), void *arg);
     
     if (pthread_create( &g_thread_id, 
                         NULL, 
                         _timer_thread(void* data),
                         NULL))
     {
-        printf("Thread creation faile \n");
+        printf("Thread creation failed \n");
         return 0;
     }
     
@@ -46,9 +47,19 @@ int intialize()
 size_t start_timer (unsigned int interval, /* milli seconds */
                     time_handler handler, 
                     t_timer      type, 
-                    void* user_data)
+                    void*        user_data)
 {
     struct timer_node*  new_node = NULL;
+        
+    // struct timespec {
+       // time_t tv_sec;                /* Seconds */
+       // long   tv_nsec;               /* Nanoseconds */
+    // };
+
+    // struct itimerspec {
+       // struct timespec it_interval;  /* Interval for periodic timer */
+       // struct timespec it_value;     /* Initial expiration */
+    // };    
     struct itimerspec   new_value;
     
     new_node = (struct timer_node*) malloc (sizeof(struct timer_node));
@@ -96,7 +107,7 @@ size_t start_timer (unsigned int interval, /* milli seconds */
                     &new_value,
                     NULL);
     
-    /* Inserting the timer node into the linked list */
+    /* Insert the timer node into the head of the linked list */
     new_node->next = g_head;
     g_head = new_node;
     
@@ -105,7 +116,7 @@ size_t start_timer (unsigned int interval, /* milli seconds */
                         
 void stop_timer(size_t timer_id)
 {
-    struct time_node* tmp = NULL;
+    struct timer_node*  tmp  = g_head;
     struct timer_node* node = (struct timer_node *)timer_id;
 
     if (node == NULL) 
@@ -118,22 +129,20 @@ void stop_timer(size_t timer_id)
     {
         g_head = g_head->next;
     } else 
-    {
-        tmp = g_head;
-        
-        while ((tmp !=NULL) && (tmp->next != node)) 
+    {   // Search for timer_node node to remove it from the linked list
+        while ((tmp != NULL) && (tmp->next != node)) 
         {
             tmp = tmp->next;
         }
         
-        if (tmp != NULL)
-        {
-            /* tmp->next cannot be NULL here */
-            tmp->next = tmp->next->next;
-            close(node->fd);
-            free(node);
-        }        
+        /* tmp->next cannot be NULL here , because there is more then one node
+           in list. One node and empty list were handled in the previous two if's */
+        tmp->next = tmp->next->next;
     }
+
+    // Close file descriptor and free node memory
+    close(node->fd);
+    free(node);
 }
 
 
@@ -245,7 +254,7 @@ void* _timer_thread(void* data)
         } // for iterating the fds array, ufds        
     } // while(1)
     
-    // Looks redundant - unreachable line
+    // This line looks redundant - unreachable line
     return NULL;
 }
 
