@@ -20,7 +20,6 @@ struct timer_node
     unsigned int        interval;
     t_timer             type;
     struct timer_node*  next;
-   
 };
 
 // Module internal members
