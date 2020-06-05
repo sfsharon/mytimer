@@ -2,33 +2,34 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-#include mytimer.h"
+#include "mytimer.h"
 
 void time_handler1(size_t timer_id, void* user_data)
 {
-    printf ("Single shot timer expired (%d)\n", timer_id);
+    printf ("Single shot timer expired (%zu)\n", timer_id);
 }
 
 void time_handler2(size_t timer_id, void* user_data)
 {
-    printf ("1000ms periodic timer expired (%d)\n", timer_id);
+    printf ("1000ms periodic timer expired (%zu)\n", timer_id);
 }
 
 void time_handler3(size_t timer_id, void* user_data)
 {
-    printf ("2000ms periodic timer expired (%d)\n", timer_id);
+    printf ("2000ms periodic timer expired (%zu)\n", timer_id);
 }
 
 int main()
 {
     size_t timer1, timer2, timer3;
     
-    intialize();
+    initialize();
     
     timer1 = start_timer(3000, time_handler1, TIMER_SINGLE_SHOT, NULL);
-    timer2 = start_timer(1000, time_handler1, TIMER_PERIODIC, NULL);
-    timer3 = start_timer(2000, time_handler1, TIMER_PERIODIC, NULL);    
+    timer2 = start_timer(1000, time_handler2, TIMER_PERIODIC, NULL);
+    timer3 = start_timer(2000, time_handler3, TIMER_PERIODIC, NULL);    
     
     sleep(6);
     

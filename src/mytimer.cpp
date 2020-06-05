@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <poll.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "mytimer.h"
 
@@ -14,30 +15,27 @@
 struct timer_node
 {
     int                 fd;
-    timer_handler       callback;
+    time_handler       callback;
     void*               user_data;
     unsigned int        interval;
     t_timer             type;
     struct timer_node*  next;
    
-}
+};
 
 // Module internal members
 static void*                _timer_thread(void* data);
 static pthread_t            g_thread_id;
 static struct timer_node*   g_head = NULL;
 
-int intialize()
+int initialize()
 {
 // int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 //                    void *(*start_routine) (void *), void *arg);
-    
-    if (pthread_create( &g_thread_id, 
-                        NULL, 
-                        _timer_thread(void* data),
-                        NULL))
+    int rc = pthread_create(&g_thread_id, NULL, _timer_thread, NULL);
+    if (rc != 0)
     {
-        printf("Thread creation failed \n");
+        printf("Thread creation failed with code %d\n", rc);
         return 0;
     }
     
@@ -203,7 +201,7 @@ void* _timer_thread(void* data)
         iMaxCount = 0;
         tmp = g_head;
         
-        memset(ufds, sizeof(struct pollfd)*MAX_TIMER_COUNT);
+        memset(ufds, 0, sizeof(struct pollfd)*MAX_TIMER_COUNT);
         // Walk over the linked list, and initialize ufds 
         // with timers data
         while(tmp != NULL)
