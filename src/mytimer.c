@@ -149,6 +149,9 @@ void finalize()
     pthread_join(g_thread_id, NULL);
 }
 
+/* Translate a file descriptor to a timer node object
+   by iterating on the linked list
+*/
 struct timer_node* _get_timer_from_fd(int fd)
 {
     struct timer_node* tmp = g_head;
@@ -168,6 +171,81 @@ struct timer_node* _get_timer_from_fd(int fd)
 
 void* _timer_thread(void* data)
 {
-    struct pollfd ufds[MAX TIMER_COUNT] =
+// struct pollfd {
+//      int   fd;         /* file descriptor */
+//      short events;     /* requested events */
+//      short revents;    /* returned events */
+// };    
+    struct pollfd ufds[MAX_TIMER_COUNT] = {{0}};
+    int iMaxCount = 0;
+    struct timer_node* tmp = NULL;
+    int read_fds = 0, i, s;
+    
+    // The value to be read from the fd after a POLLIN event
+    // has occurred
+    uint64_t exp;
+    
+    while(1)
+    {
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+        pthread_testcancel();
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+        
+        iMaxCount = 0;
+        tmp = g_head;
+        
+        memset(ufds, sizeof(struct pollfd)*MAX_TIMER_COUNT);
+        // Walk over the linked list, and initialize ufds 
+        // with timers data
+        while(tmp != NULL)
+        {
+            ufds[iMaxCount].fd = tmp->fd;
+            ufds[iMaxCount].events = POLLIN;
+            iMaxCount++;
+            
+            tmp = tmp->next;
+        } // while (tmp!=NULL)
+
+        // int poll(struct pollfd *fds, nfds_t nfds, int timeout);            
+        // From man poll : 
+        // poll waits for one of a set of file descriptors to become ready to perform I/O.
+        // The timeout argument specifies the number of milliseconds that poll() should block 
+        // waiting for a file descriptor to become ready.  The call will block until either:
+        // *  a file descriptor becomes ready;
+        // *  the call is interrupted by a signal handler; or
+        // *  the timeout expires.        
+        read_fds = poll(ufds, iMaxCount, 100);    
+        
+        if (read_fds <= 0)
+        {
+            // Either an error has occurred (read_fs < 0)
+            // or timed out, without any event on the file descriptors (read_fds == 0)
+            // Then loop back to the beginning of the while loop
+            continue;
+        }
+        
+        // Loop over the fds with returned events
+        for (i = 0; i < iMaxCount; i++)
+        {
+            if (ufds[i].revents & POLLIN)
+            {
+                s = read(ufds[i].fd, &exp, sizeof(uint64_t));
+                
+                // Make sure all the 64 bits were read from the fd
+                if (s != sizeof(uint64_t)) continue;
+                
+                // Call the callback function if applicable
+                tmp = _get_timer_from_fd(ufds[i].fd);
+                if ((tmp != NULL) && (tmp->callback != NULL))
+                {
+                    tmp->callback((size_t)tmp, tmp->user_data);
+                }
+                
+            } // if revents has bit POLLIN up
+        } // for iterating the fds array, ufds        
+    } // while(1)
+    
+    // Looks redundant - unreachable line
+    return NULL;
 }
 
