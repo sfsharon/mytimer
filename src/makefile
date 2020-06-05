@@ -3,7 +3,7 @@ LDFLAGS=-pthread
 # LDFLAGS=-lrt
 CC=gcc
 OBJECTS=mytimer.o main_mytimer.o 
-TARGET=myTimerApp
+TARGET=myTimerApp.out
 
 all: $(TARGET)
 
