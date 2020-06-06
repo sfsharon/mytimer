@@ -7,7 +7,7 @@
 using namespace std;
 
 class TimerBase
-{
+{       
 protected:
     TimerBase(unsigned int initialTime)
     {   
@@ -19,23 +19,33 @@ protected:
         m_timerSpec.it_value.tv_nsec = (initialTime % 1000) * 1000000;
     }
     
-    void initTimer(void) 
+    int initTimer(void) 
     {
+        int rVal = 0; // Init return value to success (value 0)
+        
         // Create timer file descriptor 
         m_fd = timerfd_create(CLOCK_REALTIME, /* int clockid */
                               0);             /* int flags   */
         if (m_fd == -1)
+        {            
+            cout << "timerfd_create : Failure" << endl;
+            rVal = -1;
+        }
+        else
         {
-            throw system_error (errno,
-                                system_category(),
-                                "Failed to timerfd_create");
+            // Arm timer and activate it                        
+            int rc = timerfd_settime(m_fd,
+                                     0,
+                                     &m_timerSpec,
+                                     NULL);
+            if (rc != 0) 
+            {
+                cout <<"timerfd_settime : Failure with return code : " << rc << endl;
+                rVal = -2 ;
+            }                                       
         }
 
-        // Arm timer and activate it
-        timerfd_settime(m_fd,           /* int fd */
-                        0,              /* int flags */
-                        &m_timerSpec,   /* const struct itimerspec *new_value */
-                        NULL);          /* struct itimerspec *old_value */
+        return rVal;                        
     }
     
     virtual void startTimer(void) = 0;
@@ -46,25 +56,32 @@ protected:
     struct itimerspec   m_timerSpec;    
     
     // time_handler       callback;
-    // void*               user_data;
-    // unsigned int        interval;
-    // t_timer             type;
-    // struct timer_node*  next;
 };
-
-
-
 
 /* Synchronous Timer - Blocking timer - Equivalent to sleep but with millisecond resolution*/
 class TimerSync : public TimerBase
 {
+private :
+    int m_timeout;
+    
 public:
-  TimerSync (unsigned int initialTime) :  TimerBase(initialTime)
+  TimerSync (unsigned int initialTime, int timeout) :  TimerBase(initialTime),
+                                                       m_timeout(timeout)
   {
-      cout << "TimerSync CTOR" << endl;      
-      // Synchronous timers are blocking, so cannot use periodic timers with interval
-        m_timerSpec.it_interval.tv_sec = 0;
-        m_timerSpec.it_interval.tv_nsec = 0;  
+    cout << "TimerSync CTOR - Start" << endl;      
+    // Synchronous timers are blocking, so cannot use periodic timers with interval
+    m_timerSpec.it_interval.tv_sec  = 0;
+    m_timerSpec.it_interval.tv_nsec = 0;  
+
+    if (timeout < 0)
+    {
+        cout << "TimerSync CTOR - Negative timeout means Infinite timeout" << endl;      
+    }
+    else if (timeout < initialTime)  
+    // Make sure that timeout is larger then the initial time if it is not negative
+    {
+        throw std::runtime_error("timeout should be larger then initial time");
+    }
   }
   
   ~TimerSync(void)
@@ -75,8 +92,12 @@ public:
   
   void startTimer(void)
   {
-    /* Create timer fd, and initialize settime */
-    initTimer();      
+    /* Create timer file descriptor, and initialize settime */
+    int rc = initTimer();
+    if (rc != 0) 
+    {
+        throw std::runtime_error("Init timer failed ");
+    }
       
     int read_fd = 0;
     
@@ -86,12 +107,11 @@ public:
                                .revents = 0}};    
 
     cout << "TimerSync startTimer " << endl; 
-    #define INFINITE_TIMEOUT (-1)
+
     /* Block on the file descriptor */
     read_fd = poll(ufds,                 /* struct   pollfd *fds */
                    1,                    /* nfds_t   nfds */
-                   INFINITE_TIMEOUT);    /* int timeout : Specifying a negative value in  timeout means  an infinite timeout.*/
-                   // 6000);    /* int timeout : Specifying a negative value in  timeout means  an infinite timeout.*/                   
+                   m_timeout);           /* int timeout : Specifying a negative value in  timeout means  an infinite timeout.*/
                             
 
     /* Error checking for poll system call */

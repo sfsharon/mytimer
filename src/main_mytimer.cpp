@@ -12,7 +12,10 @@ using namespace std;
 void testTimer(void)
 {
     cout << "Creating testTimer" << endl;
-    TimerSync mytimer(4000);    // Synchronous timer with 4 seconds blocking time
+    
+    // Synchronous timer with 1 second blocking time
+    TimerSync mytimer(2000, /* Initial time */
+                      1000  /* timeout      */ );    
     
     cout << "Starting testTimer" << endl;
     mytimer.startTimer();
