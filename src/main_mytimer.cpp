@@ -9,18 +9,40 @@
 
 using namespace std;
 
+// Testing timers
+#include <chrono>
+#include <utility>
+#include <math.h>
+typedef std::chrono::high_resolution_clock::time_point TimeVar;
+#define duration(a) std::chrono::duration_cast<std::chrono::nanoseconds>(a).count()
+#define timeNow() std::chrono::high_resolution_clock::now()
+
+// Test constants
+static const double PASS_ERROR_MARGIN = 10; // 10ms error margin for passing the unit test
+
 void testTimer(void)
 {
-    cout << "Creating testTimer" << endl;
-    
     // Synchronous timer with 1 second blocking time
-    TimerSync mytimer(2000, /* Initial time */
-                      1000  /* timeout      */ );    
+    unsigned int initTime = 1000; // Millisecond time 
+    int          timeout  = 4000; // Negative value means infinite loop
     
-    cout << "Starting testTimer" << endl;
-    mytimer.startTimer();
+    TimerSync mytimer(initTime, /* Initial time */
+                      timeout   /* timeout      */ );    
     
-    cout << "Exiting testTimer" << endl;
+    TimeVar t1=timeNow();    
+        mytimer.startTimer();
+    TimeVar t2=timeNow();
+    double delta = (duration(t2 - t1))/10e5;
+    double margin = fabs(delta - double(initTime));
+    cout << "Duration of timer : " << delta  << endl;
+    if (margin > PASS_ERROR_MARGIN) 
+    {
+        cout << "Test failed : Timer margin " << margin << " exceeds limit of " << PASS_ERROR_MARGIN << endl;
+    }
+    else
+    {
+        cout << "Test passed !: Timer margin " << margin << " below limit of " << PASS_ERROR_MARGIN << endl;
+    }
 }
 
 int main()

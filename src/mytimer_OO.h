@@ -11,7 +11,7 @@ class TimerBase
 protected:
     TimerBase(unsigned int initialTime)
     {   
-        cout << "TimerBase CTOR" << endl;
+        // cout << "TimerBase CTOR" << endl;
 
         /* Translate time from initialTime milliseconds 
            to struct itimerspec/struct timespec */
@@ -49,7 +49,17 @@ protected:
     }
     
     virtual void startTimer(void) = 0;
-    virtual void stopTimer(void) = 0; 
+    
+  void stopTimer(void)
+  {
+      close(m_fd);
+  }
+  
+  ~TimerBase(void)
+  {
+    cout << "TimerBase DTOR" << endl;
+    stopTimer();
+  }
     
 protected:
     int                 m_fd;
@@ -68,7 +78,7 @@ public:
   TimerSync (unsigned int initialTime, int timeout) :  TimerBase(initialTime),
                                                        m_timeout(timeout)
   {
-    cout << "TimerSync CTOR - Start" << endl;      
+    // cout << "TimerSync CTOR - Start" << endl;      
     // Synchronous timers are blocking, so cannot use periodic timers with interval
     m_timerSpec.it_interval.tv_sec  = 0;
     m_timerSpec.it_interval.tv_nsec = 0;  
@@ -84,11 +94,6 @@ public:
     }
   }
   
-  ~TimerSync(void)
-  {
-    cout << "TimerSync DTOR" << endl;
-    stopTimer();
-  }
   
   void startTimer(void)
   {
@@ -106,7 +111,7 @@ public:
                                .events = POLLIN,
                                .revents = 0}};    
 
-    cout << "TimerSync startTimer " << endl; 
+    // cout << "TimerSync startTimer " << endl; 
 
     /* Block on the file descriptor */
     read_fd = poll(ufds,                 /* struct   pollfd *fds */
@@ -125,7 +130,7 @@ public:
     /* Check if event POLLIN was raised */
     if (ufds[0].revents & POLLIN)
     {
-        cout << "TimerSync : Returned with POLLIN " << endl;
+        // cout << "TimerSync : Returned with POLLIN " << endl;
     }
     else
     {
@@ -133,10 +138,7 @@ public:
     }
   }
 
-  void stopTimer(void)
-  {
-      close(m_fd);
-  }
+
     
 };
 
@@ -147,7 +149,7 @@ class TimerASync : public TimerBase
 {
 public:
   TimerASync (unsigned int initialTime,
-             unsigned int intervalTime) : TimerBase(initialTime)
+              unsigned int intervalTime) : TimerBase(initialTime)
   {
     cout << "TimerASync CTOR" << endl;      
     m_timerSpec.it_interval.tv_sec = intervalTime / 1000;
