@@ -1,9 +1,8 @@
-CFLAGS=-g -ansi -pedantic -Wall -Werror
+CFLAGS= -ansi -pedantic -Wall -Werror
 LDFLAGS=-pthread 
-# LDFLAGS=-lrt
-CC=gcc
-OBJECTS=mytimer.o main_mytimer.o 
-TARGET=myTimerApp.out
+CC=g++
+OBJECTS=mytimer_OO.o main_mytimer.o 
+TARGET=myTimerApp_OO.out
 
 all: $(TARGET)
 
