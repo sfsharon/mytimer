@@ -75,15 +75,15 @@ public:
   
   void startTimer(void)
   {
+    /* Create timer fd, and initialize settime */
+    initTimer();      
+      
     int read_fd = 0;
     
     /* Use a single pollfd array for the synchronous timer*/
     struct pollfd ufds[1] = {{ .fd = m_fd,
                                .events = POLLIN,
                                .revents = 0}};    
-    
-    /* Create timer fd, and initialize settime */
-    initTimer();
 
     cout << "TimerSync startTimer " << endl; 
     #define INFINITE_TIMEOUT (-1)
