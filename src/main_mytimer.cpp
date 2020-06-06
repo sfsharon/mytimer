@@ -22,8 +22,10 @@ static const double PASS_ERROR_MARGIN = 10; // 10ms error margin for passing the
 
 void testTimer(void)
 {
-    // Synchronous timer with 1 second blocking time
-    unsigned int initTime = 1000; // Millisecond time 
+    // TEST #1 : Synchronous timer (Blocking)
+    // --------------------------------------
+    cout << "TEST #1 : Synchronous timer (Blocking)" << endl;
+    unsigned int initTime = 100; // Millisecond time 
     int          timeout  = 4000; // Negative value means infinite loop
     
     TimerSync mytimer(initTime, /* Initial time */
@@ -43,6 +45,12 @@ void testTimer(void)
     {
         cout << "Test passed !: Timer margin " << margin << " below limit of " << PASS_ERROR_MARGIN << endl;
     }
+
+    // TEST #2 : ASynchronous timer (Non-Blocking)
+    // --------------------------------------------   
+    cout << "TEST #2 : ASynchronous timer (Non-Blocking)" << endl;    
+    TimerASyncMng mytimerMng;
+   
 }
 
 int main()

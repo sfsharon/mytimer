@@ -15,7 +15,7 @@
 struct timer_node
 {
     int                 fd;
-    time_handler       callback;
+    time_handler        callback;
     void*               user_data;
     unsigned int        interval;
     t_timer             type;

@@ -1,7 +1,11 @@
 /* mytimer_OO.h */
+/* Solution for using pthread start_routine as a class method was taken from :
+   https://stackoverflow.com/questions/1151582/pthread-function-from-a-class
+*/
 #include <iostream>
 #include <sys/timerfd.h>
 #include <poll.h>
+#include <pthread.h>
 #include <system_error>
 
 using namespace std;
@@ -50,16 +54,16 @@ protected:
     
     virtual void startTimer(void) = 0;
     
-  void stopTimer(void)
-  {
+    void stopTimer(void)
+    {
       close(m_fd);
-  }
+    }
   
-  ~TimerBase(void)
-  {
-    cout << "TimerBase DTOR" << endl;
-    stopTimer();
-  }
+    ~TimerBase(void)
+    {
+        cout << "TimerBase DTOR of fd " << m_fd << endl;
+        stopTimer();
+    }
     
 protected:
     int                 m_fd;
@@ -136,29 +140,82 @@ public:
     {
         cout << "TimerSync : Returned without POLLIN " << endl;
     }
-  }
+  } 
+};  // class TimerSync
 
 
-    
-};
 
 // -------------------------------------------------------------------------
+// Library types 
+// -------------
 
-/* Asynchronous Timer - Non Blocking Timer - Relies on a timer thread to carry out the callback */
-class TimerASync : public TimerBase
+// Callback function when timer expires
+typedef void (*time_handler)(size_t timer_id);
+
+class TimerASyncMng
 {
-public:
-  TimerASync (unsigned int initialTime,
-              unsigned int intervalTime) : TimerBase(initialTime)
-  {
-    cout << "TimerASync CTOR" << endl;      
-    m_timerSpec.it_interval.tv_sec = intervalTime / 1000;
-    m_timerSpec.it_interval.tv_nsec = (intervalTime % 1000) * 1000000;  
-  }
+public :
+    TimerASyncMng()
+    {
+        int rc = pthread_create(&m_thread_id,           /* pthread_t *thread                */
+                                NULL,                   /* const pthread_attr_t *attr       */
+                                TimerThreadEntryFunc,   /* void *(*start_routine) (void *)  */
+                                this);                  /* void *arg                        */
+        if (rc != 0)
+        {
+            throw std::runtime_error("pthread_create : Thread creation failed");
+        }        
+    }
+    
+    int AddTimer (unsigned int initialTime,
+                  unsigned int intervalTime,
+                  time_handler handler)
+    {
+        // Create new ASynchTimer object on stack, and then push it onto the container
+        TimerASync newTimer(initialTime, 
+                            intervalTime, 
+                            handler);
+    }
 
-    // void startTimer(void)
-    // {
+    void TimerThreadEntry(void)
+    {
         
-    // }
-    // void stopTimer(void); 
+    }
+    
+private :   // Private class - Not to be published to user (Unlike TimerSynch)
+
+    /* Asynchronous Timer - Non Blocking Timer - Relies on a timer thread to carry out the callback */
+    class TimerASync : public TimerBase
+    {
+    public:
+      TimerASync (unsigned int initialTime,
+                  unsigned int intervalTime,
+                  time_handler callback) : TimerBase(initialTime),
+                                           m_callback (callback) 
+      {
+        cout << "TimerASync CTOR" << endl;      
+        m_timerSpec.it_interval.tv_sec = intervalTime / 1000;
+        m_timerSpec.it_interval.tv_nsec = (intervalTime % 1000) * 1000000;  
+      }
+
+      void startTimer(void)
+      {
+            return;
+      }
+        // void stopTimer(void); 
+    private:
+        // ASynchronous callback function, to be called in the context of the periodic thread
+        time_handler m_callback;  
+    };
+
+private : // Class attributes    
+    pthread_t m_thread_id;    
+    
+    // Using a static wrap function because pthread_create will not accept a class
+    // method with a this pointer as a first parameter
+    static void* TimerThreadEntryFunc(void* This) 
+    {
+        ((TimerASyncMng *)This)->TimerThreadEntry(); 
+        return NULL;
+    }
 };
