@@ -1,6 +1,12 @@
 # mytimer
 Implement timer library for Linux using C/C++
 
+## Run instructions
+- clone to local repository
+- make clean
+- make
+- ./myTimerApp_OO.out
+
 ##  References : 
   - Timer file descriptor library implementation for C example (using a background thread) :
     https://qnaplus.com/implement-periodic-timer-linux/
