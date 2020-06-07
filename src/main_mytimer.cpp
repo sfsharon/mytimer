@@ -20,20 +20,34 @@ typedef std::chrono::high_resolution_clock::time_point TimeVar;
 // Test constants
 static const double PASS_ERROR_MARGIN = 10; // 10ms error margin for passing the unit test
 
-void testTimer(void)
+// Timer callback
+void time_handler_cb(size_t timer_id)
 {
-    // TEST #1 : Synchronous timer (Blocking)
-    // --------------------------------------
-    cout << "TEST #1 : Synchronous timer (Blocking)" << endl;
-    unsigned int initTime = 100; // Millisecond time 
+    cout << "time_handler called with fd " << timer_id << endl;
+}
+
+void testSync(void)
+{
+    // TEST : Synchronous timer (Blocking)
+    // -----------------------------------
+    
+    // Init test
+    // *********
+    cout << "\nTEST : Synchronous timer (Blocking)" << endl;
+    unsigned int initTime = 2000; // Millisecond time 
     int          timeout  = 4000; // Negative value means infinite loop
     
     TimerSync mytimer(initTime, /* Initial time */
                       timeout   /* timeout      */ );    
     
+    // Run test
+    // *********    
     TimeVar t1=timeNow();    
         mytimer.startTimer();
     TimeVar t2=timeNow();
+    
+    // Calculate test PASS/FAIL criteria
+    // *********************************
     double delta = (duration(t2 - t1))/10e5;
     double margin = fabs(delta - double(initTime));
     cout << "Duration of timer : " << delta  << endl;
@@ -44,57 +58,32 @@ void testTimer(void)
     else
     {
         cout << "Test passed !: Timer margin " << margin << " below limit of " << PASS_ERROR_MARGIN << endl;
-    }
+    }         
+}
 
-    // TEST #2 : ASynchronous timer (Non-Blocking)
-    // --------------------------------------------   
-    cout << "TEST #2 : ASynchronous timer (Non-Blocking)" << endl;    
+void testASync(void)
+{
+    // TEST : ASynchronous timer (Non-Blocking)
+    // ----------------------------------------   
+    cout << "\nTEST : ASynchronous timer (Non-Blocking)" << endl;  
+    int timerSingle, timerPeriodic;
+    
     TimerASyncMng mytimerMng;
    
+    timerSingle = mytimerMng.startTimer(3000, 0,    time_handler_cb); //, TIMER_SINGLE_SHOT, NULL);
+    timerPeriodic = mytimerMng.startTimer(10, 1000, time_handler_cb); //, TIMER_PERIODIC, NULL);
+    
+
+    sleep(6);
+
+    mytimerMng.stopTimer(timerSingle);
+    mytimerMng.stopTimer(timerPeriodic);     
 }
 
 int main()
 {
-    cout << "Starting main" << endl;
-    testTimer();
+    testSync();    // Test Blocking timer    
+    testASync();   // Test Non-Blocking timers
     
     return 0;
-}
-
-
-// #include "mytimer.h"
-
-// void time_handler1(size_t timer_id, void* user_data)
-// {
-    // printf ("Single shot timer expired (%zu)\n", timer_id);
-// }
-
-// void time_handler2(size_t timer_id, void* user_data)
-// {
-    // printf ("1000ms periodic timer expired (%zu)\n", timer_id);
-// }
-
-// void time_handler3(size_t timer_id, void* user_data)
-// {
-    // printf ("2000ms periodic timer expired (%zu)\n", timer_id);
-// }
-
-// int main()
-// {
-    // size_t timer1, timer2, timer3;
-    
-    // initialize();
-    
-    // timer1 = start_timer(3000, time_handler1, TIMER_SINGLE_SHOT, NULL);
-    // timer2 = start_timer(1000, time_handler2, TIMER_PERIODIC, NULL);
-    // timer3 = start_timer(2000, time_handler3, TIMER_PERIODIC, NULL);    
-    
-    // sleep(6);
-    
-    // stop_timer(timer1);
-    // stop_timer(timer2);
-    // stop_timer(timer3);
-    
-    // finalize();
-// }
-    
+}    
