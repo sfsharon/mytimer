@@ -33,9 +33,9 @@ void testSync(void)
     
     // Init test
     // *********
-    cout << "\nTEST : Synchronous timer (Blocking)" << endl;
+    cout << "\n--- TEST : Synchronous timer (Blocking)" << endl;
     unsigned int initTime = 2000; // Millisecond time 
-    int          timeout  = 4000; // Negative value means infinite loop
+    int          timeout  = 3000; // Negative value means infinite loop
     
     TimerSync mytimer(initTime, /* Initial time */
                       timeout   /* timeout      */ );    
@@ -65,17 +65,27 @@ void testASync(void)
 {
     // TEST : ASynchronous timer (Non-Blocking)
     // ----------------------------------------   
-    cout << "\nTEST : ASynchronous timer (Non-Blocking)" << endl;  
+    cout << "\n--- TEST : ASynchronous timer (Non-Blocking)" << endl;  
     int timerSingle, timerPeriodic;
     
     TimerASyncMng mytimerMng;
    
-    timerSingle = mytimerMng.startTimer(3000, 0,    time_handler_cb); //, TIMER_SINGLE_SHOT, NULL);
-    timerPeriodic = mytimerMng.startTimer(10, 1000, time_handler_cb); //, TIMER_PERIODIC, NULL);
+    // TIMER_SINGLE_SHOT
+    timerSingle = mytimerMng.startTimer(3000, 0,    time_handler_cb); 
     
+    // TIMER_PERIODIC
+    cout << "--- Fast periodic timer " << endl;        
+    timerPeriodic = mytimerMng.startTimer(10, 500, time_handler_cb);        
+    sleep(3);
 
+    cout << "--- Slowing down periodic frequency " << endl;    
+    mytimerMng.changeTimer(timerPeriodic, 10, 1000);    
+    sleep(3);
+
+    cout << "--- Stopping periodic frequency " << endl;    
+    mytimerMng.changeTimer(timerPeriodic, 0, 0);    
     sleep(6);
-
+    
     mytimerMng.stopTimer(timerSingle);
     mytimerMng.stopTimer(timerPeriodic);     
 }

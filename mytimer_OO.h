@@ -47,10 +47,6 @@ protected:
         }
         else
         {
-            // cout << "initTimer : m_timerSpec.it_value.tv_sec " << m_timerSpec.it_value.tv_sec << endl;
-            // cout << "initTimer : m_timerSpec.it_value.tv_nsec " << m_timerSpec.it_value.tv_nsec << endl;
-            // cout << "initTimer : m_timerSpec.it_interval.tv_sec " << m_timerSpec.it_interval.tv_sec << endl;
-            // cout << "initTimer : m_timerSpec.it_interval.tv_nsec " << m_timerSpec.it_interval.tv_nsec << endl;            
             // Arm timer and activate it                        
             int rc = timerfd_settime(m_fd,
                                      0,
@@ -66,7 +62,7 @@ protected:
         return rVal;                        
     }
     
-    virtual void startTimer(void) = 0;
+    // virtual void startTimer(void) = 0;
     
 public:    
     int                 m_fd;    
@@ -212,6 +208,31 @@ public :
         return (newTimer.m_fd);
     }
 
+    int changeTimer (int fd, 
+                     unsigned int initialTime,   /* milliseconds to start timer */
+                     unsigned int intervalTime   /* milliseconds for periodic operation */ )   
+    {
+      int rVal = 0; // Init to success
+      
+      map<int, TimerASync>::iterator iter = m_map.find(fd) ;
+      if( iter != m_map.end() )
+      {
+        iter->second.setTime(initialTime, intervalTime);
+        
+        // Update file descriptor time                        
+        timerfd_settime(fd,
+                        0,
+                        &(iter->second.m_timerSpec),
+                        NULL);
+      }
+      else 
+      {        
+        rVal = -1;
+      }
+      
+      return rVal;
+    }
+    
     void stopTimer (int fd)
     {
       // Remove element from map
@@ -239,6 +260,11 @@ public :
         for ( it = m_map.begin(); it != m_map.end(); it++ )
         {
             std::cout << "*** File descriptor : " << it->first << endl ;
+            std::cout << "it_value.tv_sec     " << it->second.m_timerSpec.it_value.tv_sec << endl;
+            std::cout << "it_value.tv_nsec    " << it->second.m_timerSpec.it_value.tv_nsec << endl;
+            std::cout << "it_interval.tv_sec  " << it->second.m_timerSpec.it_interval.tv_sec << endl;
+            std::cout << "it_interval.tv_nsec " << it->second.m_timerSpec.it_interval.tv_nsec << endl;
+
         }
     }
         
@@ -336,10 +362,17 @@ private : // Private Inner class - Not to be published to user (Unlike TimerSync
                   time_handler callback) : TimerBase(initialTime),
                                            m_callback (callback) 
       {
-        m_timerSpec.it_interval.tv_sec = intervalTime / 1000;
-        m_timerSpec.it_interval.tv_nsec = (intervalTime % 1000) * 1000000;  
+        setTime(initialTime, intervalTime); 
       }
 
+      void setTime(unsigned int initialTime,
+                   unsigned int intervalTime)
+      {
+        m_timerSpec.it_interval.tv_sec = intervalTime / 1000;
+        m_timerSpec.it_interval.tv_nsec = (intervalTime % 1000) * 1000000; 
+      }
+      
+      
       void startTimer(void)
       {
             /* Create timer file descriptor, and initialize settime */
